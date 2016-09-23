@@ -15,3 +15,6 @@ WinFormFileUpload.csproj.user
 bin/Debug/WinFormFileUpload.vshost.exe
 bin/Debug/WinFormFileUpload.vshost.exe.config
 bin/Debug/WinFormFileUpload.vshost.exe.manifest
+bin/Debug/WinFormFileUpload.exe
+bin/Debug/WinFormFileUpload.exe.config
+bin/Debug/WinFormFileUpload.pdb
