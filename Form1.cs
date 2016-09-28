@@ -42,7 +42,7 @@ namespace WinFormFileUpload
             if (!working)
             {
                 working = true;
-                
+
                 FtpHelper ftp = new FtpHelper(Uri, UserName, Password);
                 DataTable dt;
 
@@ -79,14 +79,12 @@ namespace WinFormFileUpload
                     for (int i = 0; i < array.Length - 1; i++)
                     {
                         FIlEDIR = FIlEDIR + "/" + array[i];
-                    }                                              
+                    }
                     string FIlEPAT = FIlEDIR + "/" + filename;//ftp路径+文件名称       
 
                     try
                     {
-                        ftp.CreateDirectory(FIlEDIR, true);
-                        bool res = ftp.UploadFile(AppPath, FIlEPAT);
-                        
+                        bool res = ftp.UploadFile(AppPath, FIlEPAT, true);
                         if (res)
                         {
                             if (dr["FILETYPE"] + "" == "44")//如果是订单文件,在上传完成时自动进行确认 此时上传人即确认人
@@ -98,13 +96,9 @@ namespace WinFormFileUpload
                                 sql = "update List_Attachment set ISUPLOAD='1' WHERE ID='" + dr["ID"] + "'";
                             }
                             DBMgr.ExecuteNonQuery(sql);
-
-                            if (dr["ENTID"].ToString() == "")//非企业端上传的文件，需要新增压缩任务    
-                            {
-                                AddPdfShrinkTask(dr["ORDERCODE"].ToString());//增加压缩任务
-                            }
-
+                            AddPdfShrinkTask(dr);//增加压缩任务          
                         }
+
                     }
                     catch (Exception ex)
                     {
@@ -165,25 +159,40 @@ namespace WinFormFileUpload
                     DBMgrBase.ExecuteNonQuery(sql);
 
                 }
-                working = false; 
+                working = false;
             }
         }
 
         //增加压缩任务
-        public static void AddPdfShrinkTask(string ordercode)
+        public static void AddPdfShrinkTask(DataRow dr)
         {
-            string sql = @"select t.* from list_attachment t WHERE instr(t.ordercode,'" + ordercode + "')>0 and t.filetype=44 and instr(t.filename,'.pdf')>0";
-            DataTable dt = DBMgr.GetDataTable(sql);
-            if (dt.Rows.Count == 1)//如果只有一个订单文件且是pdf格式的
+            string ENTID = dr["ENTID"].ToString();
+            string sql = "";
+
+            if (ENTID == "")//订单文件
             {
-                //sql = "select * from pdfshrinklog t where t.attachmentid='" + dt.Rows[0]["ID"] + "'";
-                //DataTable dt2 = DBMgr.GetDataTable(sql);
-                //if (dt2.Rows.Count == 0)//防止撤销后再次提交 所以次判断一下  为提升性能暂且注释,造成的影响就是多一条shrink日志
-                //{
+                string ordercode = dr["ORDERCODE"].ToString();
+                sql = @"select t.* from list_attachment t WHERE instr(t.ordercode,'" + ordercode + "')>0 and t.filetype=44 and instr(t.filename,'.pdf')>0";
+                DataTable dt = DBMgr.GetDataTable(sql);
+                if (dt.Rows.Count == 1)//如果只有一个订单文件且是pdf格式的
+                {
+                    //sql = "select * from pdfshrinklog t where t.attachmentid='" + dt.Rows[0]["ID"] + "'";
+                    //DataTable dt2 = DBMgr.GetDataTable(sql);
+                    //if (dt2.Rows.Count == 0)//防止撤销后再次提交 所以次判断一下  为提升性能暂且注释,造成的影响就是多一条shrink日志
+                    //{
                     sql = "insert into pdfshrinklog (id,attachmentid) values (pdfshrinklog_id.nextval,'" + dt.Rows[0]["ID"] + "')";
                     DBMgr.ExecuteNonQuery(sql);
-                //}
+                    //}
+                }
             }
+            else//企业端上传的文件，web网站上传的
+            {
+
+                string ID = dr["ID"].ToString();
+                sql = "insert into pdfshrinklog (id,attachmentid) values (pdfshrinklog_id.nextval,'" + ID + "')";
+                DBMgr.ExecuteNonQuery(sql);
+            }
+
         }
 
     }
