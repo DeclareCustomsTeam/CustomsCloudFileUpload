@@ -96,7 +96,11 @@ namespace WinFormFileUpload
                                 sql = "update List_Attachment set ISUPLOAD='1' WHERE ID='" + dr["ID"] + "'";
                             }
                             DBMgr.ExecuteNonQuery(sql);
-                            AddPdfShrinkTask(dr);//增加压缩任务          
+
+                            if (dr["ENTID"].ToString() == "")//企业端上传的文件，不压缩 20160929
+                            {
+                                AddPdfShrinkTask(dr["ORDERCODE"].ToString());//增加压缩任务          
+                            }
                         }
 
                     }
@@ -164,35 +168,20 @@ namespace WinFormFileUpload
         }
 
         //增加压缩任务
-        public static void AddPdfShrinkTask(DataRow dr)
+        public static void AddPdfShrinkTask(string ordercode)
         {
-            string ENTID = dr["ENTID"].ToString();
-            string sql = "";
-
-            if (ENTID == "")//订单文件
+            string sql = @"select t.* from list_attachment t WHERE instr(t.ordercode,'" + ordercode + "')>0 and t.filetype=44 and instr(t.filename,'.pdf')>0";
+            DataTable dt = DBMgr.GetDataTable(sql);
+            if (dt.Rows.Count == 1)//如果只有一个订单文件且是pdf格式的
             {
-                string ordercode = dr["ORDERCODE"].ToString();
-                sql = @"select t.* from list_attachment t WHERE instr(t.ordercode,'" + ordercode + "')>0 and t.filetype=44 and instr(t.filename,'.pdf')>0";
-                DataTable dt = DBMgr.GetDataTable(sql);
-                if (dt.Rows.Count == 1)//如果只有一个订单文件且是pdf格式的
-                {
-                    //sql = "select * from pdfshrinklog t where t.attachmentid='" + dt.Rows[0]["ID"] + "'";
-                    //DataTable dt2 = DBMgr.GetDataTable(sql);
-                    //if (dt2.Rows.Count == 0)//防止撤销后再次提交 所以次判断一下  为提升性能暂且注释,造成的影响就是多一条shrink日志
-                    //{
-                    sql = "insert into pdfshrinklog (id,attachmentid) values (pdfshrinklog_id.nextval,'" + dt.Rows[0]["ID"] + "')";
-                    DBMgr.ExecuteNonQuery(sql);
-                    //}
-                }
-            }
-            else//企业端上传的文件，web网站上传的
-            {
-
-                string ID = dr["ID"].ToString();
-                sql = "insert into pdfshrinklog (id,attachmentid) values (pdfshrinklog_id.nextval,'" + ID + "')";
+                //sql = "select * from pdfshrinklog t where t.attachmentid='" + dt.Rows[0]["ID"] + "'";
+                //DataTable dt2 = DBMgr.GetDataTable(sql);
+                //if (dt2.Rows.Count == 0)//防止撤销后再次提交 所以次判断一下  为提升性能暂且注释,造成的影响就是多一条shrink日志
+                //{
+                sql = "insert into pdfshrinklog (id,attachmentid) values (pdfshrinklog_id.nextval,'" + dt.Rows[0]["ID"] + "')";
                 DBMgr.ExecuteNonQuery(sql);
+                //}
             }
-
         }
 
     }
