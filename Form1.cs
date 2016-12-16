@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Configuration;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -17,6 +18,7 @@ namespace WinFormFileUpload
     public partial class Form1 : Form
     {
         bool working = false;
+        bool working2 = false;
         string UserName = ConfigurationManager.AppSettings["FTPUserName"].ToString();
         string Password = ConfigurationManager.AppSettings["FTPPassword"].ToString();
         System.Uri Uri = new Uri("ftp://" + ConfigurationManager.AppSettings["FTPServer"] + ":" + ConfigurationManager.AppSettings["FTPPortNO"]);
@@ -182,6 +184,35 @@ namespace WinFormFileUpload
                 DBMgr.ExecuteNonQuery(sql);
                 //}
             }
+        }
+
+        private void timer2_Tick(object sender, EventArgs e)
+        {
+            if (!working2)
+            {
+                working2 = true;
+                string pdfPath = @"E:\345.pdf";
+                System.Drawing.Printing.PrintDocument pd = new System.Drawing.Printing.PrintDocument();
+                Process processInstance = new Process();
+                ProcessStartInfo startInfo = new ProcessStartInfo();
+                startInfo.UseShellExecute = true;
+                startInfo.Verb = "Print";
+                startInfo.CreateNoWindow = true;
+                startInfo.WindowStyle = ProcessWindowStyle.Hidden;
+                pd.PrinterSettings.PrinterName = @"\\172.20.22.99\HP LaserJet P2014";
+                startInfo.Arguments = @"/p /h /" + pdfPath + "/" + pd.PrinterSettings.PrinterName + "/";
+                startInfo.FileName = @"E:\345.pdf";
+                processInstance.StartInfo = startInfo;
+                processInstance.Start();
+            }
+
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            this.timer2.Enabled = true;
+            this.button2.Text = "运行中";
+            this.button2.Enabled = false;
         }
 
     }
