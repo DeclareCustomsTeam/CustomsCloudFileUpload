@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using StackExchange.Redis;
 using System;
 using System.Collections.Generic;
@@ -191,21 +192,44 @@ namespace WinFormFileUpload
             if (!working2)
             {
                 working2 = true;
-                string pdfPath = @"E:\345.pdf";
-                System.Drawing.Printing.PrintDocument pd = new System.Drawing.Printing.PrintDocument();
-                Process processInstance = new Process();
-                ProcessStartInfo startInfo = new ProcessStartInfo();
-                startInfo.UseShellExecute = true;
-                startInfo.Verb = "Print";
-                startInfo.CreateNoWindow = true;
-                startInfo.WindowStyle = ProcessWindowStyle.Hidden;
-                pd.PrinterSettings.PrinterName = @"\\172.20.22.99\HP LaserJet P2014";
-                startInfo.Arguments = @"/p /h /" + pdfPath + "/" + pd.PrinterSettings.PrinterName + "/";
-                startInfo.FileName = @"E:\345.pdf";
-                processInstance.StartInfo = startInfo;
-                processInstance.Start();
+                if (db.KeyExists("fileprint"))
+                {
+                    string json = db.ListLeftPop("fileprint");
+                    try
+                    {
+                        JObject jo = (JObject)JsonConvert.DeserializeObject(json);
+                        string pdfPath = ConfigurationManager.AppSettings["DeclareFilePath"] + jo.Value<string>("filename");
+                        if (File.Exists(pdfPath))
+                        {
+                            System.Drawing.Printing.PrintDocument pd = new System.Drawing.Printing.PrintDocument();
+                            Process processInstance = new Process();
+                            ProcessStartInfo startInfo = new ProcessStartInfo();
+                            startInfo.UseShellExecute = true;
+                            startInfo.Verb = "Print";
+                            startInfo.CreateNoWindow = true;
+                            startInfo.WindowStyle = ProcessWindowStyle.Hidden;
+                            switch (jo.Value<string>("user"))
+                            {
+                                case "qun_liu":
+                                    pd.PrinterSettings.PrinterName = @"\\172.20.52.75\EPSON LQ-690K ESC/P2";
+                                    break;
+                                default:
+                                    pd.PrinterSettings.PrinterName = @"\\172.20.22.99\HP LaserJet P2014";
+                                    break;
+                            }
+                            startInfo.Arguments = @"/p /h /" + pdfPath + "/" + pd.PrinterSettings.PrinterName + "/";
+                            startInfo.FileName = pdfPath;
+                            processInstance.StartInfo = startInfo;
+                            processInstance.Start();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        this.button2.Text = ex.Message;
+                    }
+                }
+                working2 = false;
             }
-
         }
 
         private void button2_Click(object sender, EventArgs e)
